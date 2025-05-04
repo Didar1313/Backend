@@ -30,15 +30,7 @@ For example:
 
 Spring Boot makes it super easy to build REST APIs in Java.
 
-```
 
-### What’s happening:
-
-* `@RestController`: Tells Spring this class handles REST requests.
-* `@RequestMapping("/products")`: All routes start with `/products`.
-* `@GetMapping`: Handles GET request.
-* `@PostMapping`: Handles POST request with request body.
-* `@DeleteMapping`: Deletes a product using the index from the URL.
 
 ---
 
