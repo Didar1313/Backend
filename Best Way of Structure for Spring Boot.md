@@ -23,10 +23,6 @@
 
 ### The Flow of data and why we use return in both method?
 
-🔁 Return Flow (Output only)
-java
-Copy
-Edit
 Client ← [JSON]
         ↑
    Controller ← service.getAll()
