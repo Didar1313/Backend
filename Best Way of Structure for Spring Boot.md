@@ -21,6 +21,15 @@
    * Handles incoming HTTP requests.
    * Example: `ProjectController.java`
 
+### The Flow of data and why we use return in both method?
+
+Client ← [JSON]
+        ↑
+   Controller ← service.getAll()
+        ↑
+    Service ← List<Project> from DB/memory
+
+
 ---
 
 ### 🔄 Why this order?
