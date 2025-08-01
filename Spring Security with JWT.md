@@ -94,7 +94,7 @@ public AuthenticationManager authManager(UserDetailsService uds, PasswordEncoder
 
 ---
 
-### **6. Build JWT Support (`JwtTokenService`)**
+### **6a. Build JWT Support (`JwtTokenService`)**
 
 #### 📌 Why?
 
@@ -108,6 +108,45 @@ public class JwtTokenService {
 ```
 
 ---
+
+### ✅ 6b. JwtConfig: Where Encoder & Decoder Are Wired 🔥
+
+#### 📌 Why it's needed:
+
+Spring Security needs beans for JWT encoding and decoding. Without these, your `JwtTokenService` won't work. You must explicitly define how tokens are encoded and validated.
+
+#### 🧪 Configuration Code:
+
+```java
+@Configuration
+public class JwtConfig {
+
+    @Value("${security.rest.jwt.key}")
+    private String jwtKey;
+
+    @Bean
+    public JwtEncoder jwtEncoder() {
+        return new NimbusJwtEncoder(new ImmutableSecret<>(jwtKey.getBytes()));
+    }
+
+    @Bean
+    public JwtDecoder jwtDecoder() {
+        byte[] bytes = jwtKey.getBytes();
+        SecretKeySpec originalKey = new SecretKeySpec(bytes, 0, bytes.length, "RSA");
+        return NimbusJwtDecoder.withSecretKey(originalKey)
+                .macAlgorithm(MacAlgorithm.HS256)
+                .build();
+    }
+}
+```
+
+* **Long enough** (at least 256 bits recommended).
+* **Secure** — use environment variables or config files.
+* **Never hardcoded** in source code or version control.
+
+> This configuration makes your application ready to securely encode and decode JWTs using a shared secret.
+
+
 
 ### **7. Write the Authentication Service**
 
@@ -175,4 +214,123 @@ public class SecurityConfig {
 * Look into `Spring Security FilterChain` order to understand how filters are triggered.
 * Debug with breakpoints to see what’s happening during login.
 * Read official [Spring Security docs](https://docs.spring.io/spring-security/reference/index.html) for deeper understanding.
+
+
+---
+
+## ✅ Short Descrioption
+
+*Includes missing `JwtConfig` (Step 6b)*
+
+---
+
+### **1. Start with the Domain Model**
+
+➡️ `UserEntity`, `UserRepository`
+✅ Define what you're securing
+
+---
+
+### **2. Create the `UserDetails` Implementation**
+
+➡️ `AuthUser implements UserDetails`
+✅ Makes your user compatible with Spring Security
+
+---
+
+### **3. Create `CustomUserDetailsService`**
+
+➡️ Loads users from DB
+✅ Used by Spring Security to find user on login
+
+---
+
+### **4. Configure `PasswordEncoder` Bean**
+
+➡️ BCrypt recommended
+✅ Secures and verifies passwords
+
+---
+
+### **5. Set Up the `AuthenticationManager`**
+
+➡️ Wires UserDetailsService + Encoder
+✅ Used to authenticate login attempts
+
+---
+
+### **6. Build JWT Support (Split into 2 Parts)**
+
+#### **6a. `JwtTokenService`**
+
+➡️ Your custom logic to create and read tokens
+
+```java
+public class JwtTokenService {
+    private final JwtEncoder encoder;
+    private final JwtDecoder decoder;
+
+    public String generateToken(Authentication auth) { ... }
+    public Long extractExpirationTime(String token) { ... }
+}
+```
+
+---
+
+#### ✅ **6b. `JwtConfig`: Where Encoder & Decoder Are Wired** 🔥
+
+📌 **Why it's needed**: Spring Security needs beans for JWT encoding/decoding. You can't use `JwtTokenService` unless you provide these.
+
+
+
+> 🧠 **Tip**: If you're using symmetric signing (e.g., HS256), make sure the key is long and secret. Use a secure key from env variables or config files — **never hardcode secrets**.
+
+---
+
+### **7. Write the Authentication Service**
+
+➡️ Uses `AuthenticationManager` + `JwtTokenService`
+✅ Accepts login requests, returns JWT
+
+---
+
+### **8. Create SecurityConfig**
+
+➡️ Two `SecurityFilterChain` beans (one for `/api/**`, one for `/admin/**`)
+✅ Controls how and where authentication is enforced
+
+---
+
+## 🧭 Final Learning Order Summary (Updated)
+
+| Step | Component                  | Role                                     |
+| ---- | -------------------------- | ---------------------------------------- |
+| 1️⃣  | `UserEntity`               | Define secured user data                 |
+| 2️⃣  | `AuthUser`                 | Implements `UserDetails`                 |
+| 3️⃣  | `CustomUserDetailsService` | Loads user by username                   |
+| 4️⃣  | `PasswordEncoder`          | Hash/validate passwords                  |
+| 5️⃣  | `AuthenticationManager`    | Validates credentials                    |
+| 6a️⃣ | `JwtTokenService`          | Issues & validates tokens                |
+| 6b️⃣ | `JwtConfig`                | Registers encoder/decoder beans          |
+| 7️⃣  | `AuthService`              | Authenticates and issues tokens          |
+| 8️⃣  | `SecurityConfig`           | Sets up `/admin/**` and `/api/**` chains |
+
+---
+
+## ✅ Bonus Tip for Configuration
+
+Make sure your `application.yml` or `application.properties` includes:
+
+```yaml
+security:
+  rest:
+    jwt:
+      key: your-very-secret-key-here
+```
+
+Or with `application.properties`:
+
+```properties
+security.rest.jwt.key=your-very-secret-key-here
+```
 
